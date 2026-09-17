@@ -3,7 +3,7 @@
 **Effective date:** September 13, 2026  
 **Publisher:** Open Sikh Apps  
 **App:** Waheguru Simran  
-**App ID (Android & iOS):** `com.opensikhapps.wahegurusimran`
+**App ID (Android & iOS):** `com.opensikhapps.wahegurusimranexpo`
 
 ## Summary
 
@@ -40,7 +40,7 @@ The app does not require network access for its core features. If the operating 
 
 ## Children’s privacy
 
-The app does not knowingly collect personal information from anyone, including children.
+The app does not collect personal information from anyone, including children.
 
 ## Changes to this policy
 
