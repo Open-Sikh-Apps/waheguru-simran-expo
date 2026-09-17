@@ -13,9 +13,7 @@
     "prebuild": "expo prebuild",
     "prebuild:clean": "expo prebuild --clean",
     "clean": "rm -rf android ios node_modules && npm install && npx expo prebuild --clean",
-    "android:signing": "node scripts/apply-android-signing.js",
     "android:preview": "cd android && ./gradlew assembleRelease && node -e \"console.log('\\nPreview APK (debug-signed):\\n  android/app/build/outputs/apk/release/app-release.apk\\n')\"",
-    "android:release": "npm run android:signing && cd android && ./gradlew bundleRelease",
     "typecheck": "tsc --noEmit",
     "postinstall": "patch-package && rm -rf node_modules/react-native-nitro-player/android/.cxx",
     "patch:nitro-player": "rm -rf node_modules/react-native-nitro-player/android/.cxx node_modules/react-native-nitro-player/android/build && patch-package react-native-nitro-player --exclude 'android/\\.cxx|android/build'"
