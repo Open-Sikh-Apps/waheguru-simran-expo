@@ -17,8 +17,7 @@
         "usesNonExemptEncryption": false
       },
       "backgroundColor": "#000000",
-      "bundleIdentifier": "com.opensikhapps.wahegurusimran",
-      "buildNumber": "1",
+      "bundleIdentifier": "com.opensikhapps.wahegurusimranexpo",
       "infoPlist": {
         "UIBackgroundModes": [
           "audio"
@@ -26,9 +25,8 @@
       }
     },
     "android": {
-      "package": "com.opensikhapps.wahegurusimran",
+      "package": "com.opensikhapps.wahegurusimranexpo",
       "userInterfaceStyle": "dark",
-      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundImage": "./assets/adaptive-icon-background.png",

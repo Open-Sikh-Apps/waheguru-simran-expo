@@ -1,102 +1,17 @@
-# Waheguru Simran (Expo)
+### Waheguru Simran
+### Bhai Sahib Bhai Sewa Singh Ji Tarmala
+#### Gurdwara Prabh Milne Ka Chao, Moga
 
-Offline Waheguru Simran player for iOS and Android — one bundled loop track, gapless-style looping, background playback, and lock-screen / notification play-pause with album art.
+Gurbani Guru guides us to focus our attention in our voice while doing Simran
 
-Built with Waheguru's grace. Lineage: Bhai Sahib Bhai Sewa Singh Ji Tarmala · Gurdwara Prabh Milne Ka Chao, Moga.
+dhun meh dhiaan dhiaan meh jaaniaa gurmukh akath kahaanee ||3||
 
-This is an Expo / React Native recreation of the earlier Flutter app: https://github.com/gpmkc-moga/waheguru_simran
+Also to do simran while doing karam
 
-## Features
+naamaa kahai tilochanaa mukh te raam sa(n)m(h)aal ||
+haath paau kar kaam sabh cheet nira(n)jan naal ||213||
 
-- Single dark portrait screen: cover art + play / pause
-- Bundled `assets/audio/waheguru-simran-loop.mp3` (loops continuously)
-- Background playback with OS lock-screen / notification controls (play/pause only, with cover)
-- Headset / Bluetooth media buttons via the system media session
-- Android back button backgrounds the app (does not kill audio)
-- No accounts, ads, analytics, or network requirement
 
-## Requirements
 
-- Node.js 20+
-- For device / store builds: Xcode (macOS) and/or Android Studio + JDK
-- **Expo Go is not enough** for background audio and lock-screen controls — use a local native build (`expo prebuild` + `expo run:ios` / `expo run:android`)
 
-## Develop
-
-```bash
-npm install
-npx expo prebuild
-npx expo run:ios
-# or
-npx expo run:android
-```
-
-Application ID (Android & iOS): `com.opensikhapps.wahegurusimran`
-
-## Privacy
-
-See [privacy.md](privacy.md). Host that file at a public HTTPS URL when the stores ask for a privacy policy link.
-
-## Local production builds (no EAS paid plans)
-
-Follows Expo’s [local app production](https://docs.expo.dev/guides/local-app-production) flow. Builds run entirely on your machine.
-
-### Android (Play Store AAB)
-
-1. Generate a one-time upload keystore (keep a backup offline):
-
-```bash
-keytool -genkeypair -v -storetype PKCS12 \
-  -keystore credentials/waheguru-simran-upload.jks \
-  -alias waheguru-simran \
-  -keyalg RSA -keysize 2048 -validity 10000
-```
-
-2. Copy `credentials/keystore.properties.example` → `credentials/keystore.properties` and set passwords / filenames.
-
-3. Generate native project and release bundle:
-
-```bash
-npx expo prebuild --platform android --clean
-npm run android:release
-```
-
-4. Upload the AAB from:
-
-`android/app/build/outputs/bundle/release/app-release.aab`
-
-to Google Play Console (manual upload). No EAS Build required.
-
-### iOS (App Store)
-
-1. Register App ID `com.opensikhapps.wahegurusimran` in your Apple Developer account.
-
-2. Generate the native project:
-
-```bash
-npx expo prebuild --platform ios --clean
-```
-
-3. Open `ios/*.xcworkspace` in Xcode, select your Team for signing, then **Product → Archive → Distribute App → App Store Connect**.
-
-All signing stays on your Mac / Apple account. No EAS paid plan needed.
-
-### Store listing checklist (you supply)
-
-- App name, short & full description, screenshots
-- Privacy policy URL (hosted copy of `privacy.md`)
-- Content rating questionnaire
-- First version: `1.0.0` (Android `versionCode` 1, iOS `buildNumber` 1) in `app.json`
-
-## Manual QA
-
-- Loop feels continuous on a physical device
-- Audio continues when the app is backgrounded / screen locked
-- Notification / lock screen shows cover + play/pause only (no seek / next)
-- Wired / Bluetooth headset play-pause works
-- Airplane mode still plays (bundled asset)
-- Portrait only
-
-## License
-
-MIT — see [LICENSE](LICENSE). Audio and artwork remain attributed to the Waheguru Live / GPMKC Moga tradition as in the original app.
+Built with Waheguru's grace using Expo
