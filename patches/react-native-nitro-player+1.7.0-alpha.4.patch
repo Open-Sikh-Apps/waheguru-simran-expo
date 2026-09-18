@@ -1,3 +1,55 @@
+diff --git a/node_modules/react-native-nitro-player/android/src/main/AndroidManifest.xml b/node_modules/react-native-nitro-player/android/src/main/AndroidManifest.xml
+index eaa7655..e0c7966 100644
+--- a/node_modules/react-native-nitro-player/android/src/main/AndroidManifest.xml
++++ b/node_modules/react-native-nitro-player/android/src/main/AndroidManifest.xml
+@@ -3,7 +3,6 @@
+     <!-- Permissions for downloads -->
+     <uses-permission android:name="android.permission.INTERNET" />
+     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+     <uses-permission android:name="android.permission.WAKE_LOCK" />
+     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+@@ -14,23 +13,15 @@
+     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+ 
+     <!-- Required so Android Auto / Assistant treat this as a media app. -->
+-    <uses-feature
+-        android:name="android.hardware.audio.output"
+-        android:required="false" />
++    <uses-feature android:name="android.hardware.audio.output" android:required="false" />
+ 
+     <application>
+         <!-- Google Cast: supplies CastOptions (receiver app ID) to the Cast SDK.
+              Apps shipping their own OptionsProvider must override with tools:replace. -->
+-        <meta-data
+-            android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
+-            android:value="com.margelo.nitro.nitroplayer.media.NitroCastOptionsProvider" />
++        <meta-data android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME" android:value="com.margelo.nitro.nitroplayer.media.NitroCastOptionsProvider" />
+ 
+         <!-- PlaybackService keeps music alive when screen is locked / app backgrounded -->
+-        <service
+-            android:name="com.margelo.nitro.nitroplayer.media.NitroPlayerPlaybackService"
+-            android:foregroundServiceType="mediaPlayback"
+-            android:exported="true"
+-            tools:node="merge">
++        <service android:name="com.margelo.nitro.nitroplayer.media.NitroPlayerPlaybackService" android:foregroundServiceType="mediaPlayback" android:exported="true" tools:node="merge">
+             <intent-filter>
+                 <action android:name="androidx.media3.session.MediaSessionService" />
+             </intent-filter>
+@@ -44,11 +35,7 @@
+         </service>
+ 
+         <!-- WorkManager's SystemForegroundService for download notifications -->
+-        <service
+-            android:name="androidx.work.impl.foreground.SystemForegroundService"
+-            android:foregroundServiceType="dataSync"
+-            android:exported="false"
+-            tools:node="merge" />
++        <service android:name="androidx.work.impl.foreground.SystemForegroundService" android:foregroundServiceType="dataSync" android:exported="false" tools:node="merge" />
+     </application>
+ </manifest>
+ 
 diff --git a/node_modules/react-native-nitro-player/android/src/main/java/com/margelo/nitro/nitroplayer/media/MediaSessionCallbackFactory.kt b/node_modules/react-native-nitro-player/android/src/main/java/com/margelo/nitro/nitroplayer/media/MediaSessionCallbackFactory.kt
 index 38892cf..1dd98e3 100644
 --- a/node_modules/react-native-nitro-player/android/src/main/java/com/margelo/nitro/nitroplayer/media/MediaSessionCallbackFactory.kt
@@ -115,7 +167,7 @@ index 1e6259c..ce058ce 100644
          // Build MediaSession
 diff --git a/node_modules/react-native-nitro-player/ios/.DS_Store b/node_modules/react-native-nitro-player/ios/.DS_Store
 new file mode 100644
-index 0000000..de0a5cd
+index 0000000..6908f0d
 Binary files /dev/null and b/node_modules/react-native-nitro-player/ios/.DS_Store differ
 diff --git a/node_modules/react-native-nitro-player/ios/media/MediaSessionManager.swift b/node_modules/react-native-nitro-player/ios/media/MediaSessionManager.swift
 index b0d88af..901c795 100644
