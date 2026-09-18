@@ -1,5 +1,5 @@
 diff --git a/node_modules/react-native-nitro-player/android/src/main/java/com/margelo/nitro/nitroplayer/media/MediaSessionCallbackFactory.kt b/node_modules/react-native-nitro-player/android/src/main/java/com/margelo/nitro/nitroplayer/media/MediaSessionCallbackFactory.kt
-index 38892cf..1378214 100644
+index 38892cf..1dd98e3 100644
 --- a/node_modules/react-native-nitro-player/android/src/main/java/com/margelo/nitro/nitroplayer/media/MediaSessionCallbackFactory.kt
 +++ b/node_modules/react-native-nitro-player/android/src/main/java/com/margelo/nitro/nitroplayer/media/MediaSessionCallbackFactory.kt
 @@ -6,6 +6,8 @@ import android.net.Uri
@@ -11,7 +11,7 @@ index 38892cf..1378214 100644
  import androidx.media3.exoplayer.ExoPlayer
  import androidx.media3.session.MediaSession
  import androidx.media3.session.SessionCommand
-@@ -39,14 +41,24 @@ object MediaSessionCallbackFactory {
+@@ -39,14 +41,25 @@ object MediaSessionCallbackFactory {
              override fun onConnect(
                  session: MediaSession,
                  controller: MediaSession.ControllerInfo,
@@ -27,6 +27,7 @@ index 38892cf..1378214 100644
 +                    .remove(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
 +                    .remove(Player.COMMAND_SEEK_BACK)
 +                    .remove(Player.COMMAND_SEEK_FORWARD)
++                    .remove(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
 +                    .build()
 +
 +                return MediaSession.ConnectionResult
@@ -43,7 +44,7 @@ index 38892cf..1378214 100644
  
              override fun onAddMediaItems(
                  mediaSession: MediaSession,
-@@ -290,16 +302,19 @@ object MediaSessionCallbackFactory {
+@@ -290,16 +303,19 @@ object MediaSessionCallbackFactory {
                  if (!artist.isNullOrBlank() && artistL.contains(artist.lowercase())) score += 80
                  if (artistL.contains(q)) score += 40
              }
@@ -63,7 +64,7 @@ index 38892cf..1378214 100644
              else -> {
                  if (!title.isNullOrBlank() && titleL.contains(title.lowercase())) score += 80
                  if (!artist.isNullOrBlank() && artistL.contains(artist.lowercase())) score += 50
-@@ -332,7 +347,8 @@ object MediaSessionCallbackFactory {
+@@ -332,7 +348,8 @@ object MediaSessionCallbackFactory {
          track.artwork?.asSecondOrNull()?.let { artworkUrl ->
              try {
                  metadataBuilder.setArtworkUri(Uri.parse(artworkUrl))
@@ -86,11 +87,53 @@ index c0b0642..5aaec31 100644
          val session = mediaSession ?: return
          // Preferences replace Media3's default layout — prev/next must be declared or they vanish.
          // Compact only shows BACK / play-pause / FORWARD, so the ±N skips go to OVERFLOW; left in
+diff --git a/node_modules/react-native-nitro-player/android/src/main/java/com/margelo/nitro/nitroplayer/media/PlaybackService.kt b/node_modules/react-native-nitro-player/android/src/main/java/com/margelo/nitro/nitroplayer/media/PlaybackService.kt
+index 1e6259c..ce058ce 100644
+--- a/node_modules/react-native-nitro-player/android/src/main/java/com/margelo/nitro/nitroplayer/media/PlaybackService.kt
++++ b/node_modules/react-native-nitro-player/android/src/main/java/com/margelo/nitro/nitroplayer/media/PlaybackService.kt
+@@ -19,6 +19,8 @@ import com.margelo.nitro.nitroplayer.core.TrackPlayerCore
+ import com.margelo.nitro.nitroplayer.core.skipToNextOnQueue
+ import com.margelo.nitro.nitroplayer.core.skipToPreviousOnQueue
+ import com.margelo.nitro.nitroplayer.playlist.PlaylistManager
++// Patch: For our app, we only need play-pause
++import androidx.media3.common.C
+ 
+ /**
+  * Foreground service that **owns** the ExoPlayer and MediaSession.
+@@ -104,6 +106,12 @@ class NitroPlayerPlaybackService : MediaSessionService() {
+                 override fun seekToNextMediaItem() {
+                     trackPlayerCore?.skipToNextOnQueue() ?: super.seekToNextMediaItem()
+                 }
++
++                // Patch: For our app, we only need play-pause
++                override fun getDuration(): Long {
++                    // Hides the seekbar entirely from the notification
++                    return C.TIME_UNSET
++                }
+             }
+ 
+         // Build MediaSession
+diff --git a/node_modules/react-native-nitro-player/ios/.DS_Store b/node_modules/react-native-nitro-player/ios/.DS_Store
+new file mode 100644
+index 0000000..de0a5cd
+Binary files /dev/null and b/node_modules/react-native-nitro-player/ios/.DS_Store differ
 diff --git a/node_modules/react-native-nitro-player/ios/media/MediaSessionManager.swift b/node_modules/react-native-nitro-player/ios/media/MediaSessionManager.swift
-index b0d88af..ac8f501 100644
+index b0d88af..901c795 100644
 --- a/node_modules/react-native-nitro-player/ios/media/MediaSessionManager.swift
 +++ b/node_modules/react-native-nitro-player/ios/media/MediaSessionManager.swift
-@@ -319,10 +319,11 @@ class MediaSessionManager {
+@@ -149,8 +149,9 @@ class MediaSessionManager {
+       MPMediaItemPropertyTitle: track.title,
+       MPMediaItemPropertyArtist: track.artist,
+       MPMediaItemPropertyAlbumTitle: track.album,
+-      MPNowPlayingInfoPropertyElapsedPlaybackTime: safePosition,
+-      MPMediaItemPropertyPlaybackDuration: effectiveDuration,
++      // Patch: For our app, we only need play-pause
++      // MPNowPlayingInfoPropertyElapsedPlaybackTime: safePosition,
++      // MPMediaItemPropertyPlaybackDuration: effectiveDuration,
+       MPNowPlayingInfoPropertyPlaybackRate: isPlaying ? playbackSpeed : 0.0,
+       MPNowPlayingInfoPropertyDefaultPlaybackRate: playbackSpeed,
+       MPNowPlayingInfoPropertyPlaybackQueueCount: max(1, queueCount),
+@@ -319,12 +320,13 @@ class MediaSessionManager {
      let playerDuration = state.totalDuration
      let hasDuration = playerDuration > 0 && !playerDuration.isNaN && !playerDuration.isInfinite
  
@@ -104,5 +147,8 @@ index b0d88af..ac8f501 100644
 +    commandCenter.skipForwardCommand.isEnabled = false
 +    commandCenter.skipBackwardCommand.isEnabled = false
      commandCenter.changePlaybackRateCommand.isEnabled = hasCurrentTrack
-     commandCenter.changePlaybackPositionCommand.isEnabled = hasCurrentTrack && hasDuration
+-    commandCenter.changePlaybackPositionCommand.isEnabled = hasCurrentTrack && hasDuration
++    commandCenter.changePlaybackPositionCommand.isEnabled = false
    }
+ 
+   private func disableAllCommands() {

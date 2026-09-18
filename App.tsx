@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
 import { Asset, useAssets } from "expo-asset";
@@ -16,7 +16,6 @@ if (!__DEV__) {
   console.log = () => {};
   console.info = () => {};
   console.warn = () => {};
-  console.error = () => {};
 }
 
 const SIMRAN_AUDIO_PATH = "./assets/audio/wahegurusimranloop.mp3";
@@ -81,120 +80,211 @@ function PlayPauseIcon({ playing }: { playing: boolean }) {
   );
 }
 
+async function isPlayerDead(): Promise<boolean> {
+  try {
+    const state = await TrackPlayer.getState();
+    console.log(JSON.stringify(state));
+
+    // 1. Check for an explicit stopped state string
+    if (state.currentState === "stopped") {
+      return true;
+    }
+
+    // 2. iOS Fallback: If it says 'paused' or 'idle' but everything else is gone,
+    // it's effectively dead/finished in a headless context.
+    const isIdleState = state.currentState === "paused" || !state.currentState;
+    const hasNoTrack = !state.currentTrack && state.currentIndex === -1;
+
+    if (isIdleState && hasNoTrack) {
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    // 3. Native Bridge Fallback: The background service/player instance was destroyed
+    console.error(
+      "[Background] TrackPlayer bridge rejected or uninitialized:",
+      error,
+    );
+    return true;
+  }
+}
+
+let configured: Promise<void> | null = null;
+
+async function ensureConfigured(
+  audioUrl: string,
+  artworkUrl: string,
+): Promise<void> {
+  try {
+    if (!configured || (await isPlayerDead())) {
+      configured = (async () => {
+        if (await isPlayerDead()) {
+          console.log("configuring");
+          await TrackPlayer.configure({
+            androidAutoEnabled: true,
+            carPlayEnabled: true,
+            showInNotification: true,
+          });
+          console.log("TrackPlayer.configure done");
+
+          const playlistId = await PlayerQueue.createPlaylist(
+            LOCK_SCREEN_METADATA_BASE.album,
+            undefined,
+            artworkUrl,
+          );
+          console.log("PlayerQueue.createPlaylist done");
+
+          const simranTrack: TrackItem = {
+            ...LOCK_SCREEN_METADATA_BASE,
+            url: audioUrl,
+            artwork: artworkUrl,
+          };
+
+          await PlayerQueue.addTrackToPlaylist(playlistId, simranTrack);
+          console.log("PlayerQueue.addTrackToPlaylist done");
+
+          await PlayerQueue.loadPlaylist(playlistId);
+          console.log("PlayerQueue.loadPlaylist done");
+
+          await TrackPlayer.setRepeatMode("track");
+          console.log("configured");
+        } else {
+          console.log("already configured");
+        }
+      })().catch((error) => {
+        configured = null;
+        throw error;
+      });
+    }
+  } catch (error) {
+    configured = null;
+    throw error;
+  }
+
+  await configured;
+}
+
+// const DEBUG_TEXT_PREFIX = "Debug Text: ";
+
 function SimranPlayer() {
   const [assets] = useAssets([require(SIMRAN_AUDIO_PATH)]);
+  const audioUrl = assets?.[0]?.localUri;
+
   const [artworkUrl, setArtworkUrl] = useState<string | undefined>();
+  // const [debugText, setDebugText] = useState<string>(DEBUG_TEXT_PREFIX);
 
-  const playerStatus = useOnPlaybackStateChange();
-  const configured = useRef(false);
+  const { state } = useOnPlaybackStateChange();
+  const playerPlaying = state === "playing" || state === "buffering";
 
-  async function prepare() {
-    console.log("preparing");
-    if (!(assets && assets[0].localUri && artworkUrl)) {
-      //assets not loaded yet
-      console.log("assets not loaded yet");
-      const resolvedArtworkUrl = await resolveLockScreenArtworkUrl(
-        require(COVER_IMAGE_PATH),
-      );
-      setArtworkUrl(resolvedArtworkUrl);
-      return;
-    }
-    console.log("assets loaded");
-    try {
-      if (configured.current) {
-        return;
-      }
-      if ((await TrackPlayer.getState()).currentTrack == null) {
-        console.log("configuring");
-        await TrackPlayer.configure({
-          androidAutoEnabled: true,
-          carPlayEnabled: false,
-          showInNotification: true,
-        });
-        console.log("TrackPlayer.configure done");
-
-        const playlistId = await PlayerQueue.createPlaylist(
-          LOCK_SCREEN_METADATA_BASE.album,
-          undefined,
-          artworkUrl,
-        );
-        console.log("PlayerQueue.createPlaylist done");
-
-        const simranTrack: TrackItem = {
-          ...LOCK_SCREEN_METADATA_BASE,
-          url: assets[0].localUri,
-          artwork: artworkUrl,
-        };
-
-        await PlayerQueue.addTrackToPlaylist(playlistId, simranTrack);
-        console.log("PlayerQueue.addTrackToPlaylist done");
-
-        await PlayerQueue.loadPlaylist(playlistId);
-        console.log("PlayerQueue.loadPlaylist done");
-
-        await TrackPlayer.setRepeatMode("track");
-        console.log("configured");
-      } else {
-        console.log("already configured");
-      }
-      configured.current = true;
-    } catch (error) {
-      console.log(error);
-    }
-  }
+  const [loadingPlayer, setLoadingPlayer] = useState(true);
+  const [isActionPending, setIsActionPending] = useState(false);
 
   useEffect(() => {
-    prepare();
-  }, [assets, artworkUrl]);
+    let isCurrent = true;
+    const fetchArtwork = async () => {
+      try {
+        const resolvedUrl = await resolveLockScreenArtworkUrl(
+          require(COVER_IMAGE_PATH),
+        );
+        if (isCurrent) {
+          setArtworkUrl(resolvedUrl);
+        }
+      } catch (error) {
+        console.error("Failed to fetch artwork:", error);
+      }
+    };
+    fetchArtwork();
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isCurrent = true;
+    if (audioUrl && artworkUrl) {
+      console.log("assets loaded");
+      ensureConfigured(audioUrl, artworkUrl)
+        .then(() => {
+          if (isCurrent) {
+            setLoadingPlayer(false);
+          }
+        })
+        .catch((error) =>
+          console.error("Player could not be configured", error),
+        );
+    }
+    return () => {
+      isCurrent = false;
+    };
+  }, [audioUrl, artworkUrl]);
 
   async function togglePlayback() {
-    console.log("togglePlayback called");
-    if (playerStatus.state === "playing") {
-      console.log("togglePlayback was playing");
-      TrackPlayer.pause();
-    } else {
-      if (playerStatus.state === "stopped") {
-        console.log("togglePlayback was stopped");
-        await prepare();
-      }
-      TrackPlayer.play();
+    if (!(audioUrl && artworkUrl)) {
+      //should not reach here
+      // setDebugText(`${DEBUG_TEXT_PREFIX}should not reach here`);
+      return;
     }
-  }
 
-  const loading = playerStatus.state === "buffering";
+    console.log("togglePlayback called");
 
-  if (!(assets && artworkUrl)) {
-    return null;
+    if (isActionPending) return;
+    try {
+      setIsActionPending(true);
+
+      // Always ensure the player is fully configured first
+      await ensureConfigured(audioUrl, artworkUrl);
+
+      if (state === "playing") {
+        console.log("togglePlayback was playing");
+        // setDebugText(`${DEBUG_TEXT_PREFIX}togglePlayback was playing`);
+        TrackPlayer.pause();
+      } else {
+        // setDebugText(`${DEBUG_TEXT_PREFIX}togglePlayback was NOT playing`);
+        TrackPlayer.play();
+      }
+    } catch (error) {
+      console.error("Failed to toggle play/pause:", error);
+    } finally {
+      setIsActionPending(false);
+    }
   }
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.content}>
-        <Image source={artworkUrl} style={styles.cover} contentFit="contain" />
-        <View style={styles.controls}>
-          {loading ? (
-            <ActivityIndicator
-              size="large"
-              color="#FFFFFF"
-              style={styles.spinner}
+        {loadingPlayer ? (
+          <ActivityIndicator
+            size="large"
+            color="#FFFFFF"
+            style={styles.spinner}
+          />
+        ) : (
+          <>
+            <Image
+              source={artworkUrl}
+              style={styles.cover}
+              contentFit="contain"
             />
-          ) : (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={
-                playerStatus.state == "playing" ? "Pause Simran" : "Play Simran"
-              }
-              hitSlop={16}
-              onPress={togglePlayback}
-              style={({ pressed }) => [
-                styles.playButton,
-                pressed && styles.playButtonPressed,
-              ]}
-            >
-              <PlayPauseIcon playing={playerStatus.state == "playing"} />
-            </Pressable>
-          )}
-        </View>
+            {/* <Text style={{ color: "#FFFFFF" }}>{debugText}</Text> */}
+            <View style={styles.controls}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  playerPlaying ? "Pause Simran" : "Play Simran"
+                }
+                hitSlop={16}
+                onPress={togglePlayback}
+                style={({ pressed }) => [
+                  styles.playButton,
+                  (pressed || isActionPending) && styles.playButtonPressed,
+                ]}
+              >
+                <PlayPauseIcon playing={playerPlaying} />
+              </Pressable>
+            </View>
+          </>
+        )}
       </View>
     </SafeAreaView>
   );
